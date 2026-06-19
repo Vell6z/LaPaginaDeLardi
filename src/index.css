@@ -1,0 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-cream-100: #Fdfbf7;
+  --color-cream-200: #F5F1E8;
+  --color-cream-150: #F9F6F0;
+  --color-moss-500: #2A5A3C;
+  --color-moss-600: #1F452D;
+  --color-moss-700: #2C4C3B;
+  --color-moss-800: #1E3F20;
+  --color-acorn-300: #D1BFAE;
+  --color-acorn-400: #B57F50;
+  --color-acorn-500: #8C5C38;
+  --color-acorn-600: #6A4426;
+
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@utility bg-grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+@utility bg-topo {
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 50 Q 25 25, 50 50 T 100 50' stroke='%23ffffff' stroke-width='1.5' fill='none' opacity='0.05'/%3E%3Cpath d='M0 80 Q 25 55, 50 80 T 100 80' stroke='%23ffffff' stroke-width='1.5' fill='none' opacity='0.05'/%3E%3Cpath d='M0 20 Q 25 -5, 50 20 T 100 20' stroke='%23ffffff' stroke-width='1.5' fill='none' opacity='0.05'/%3E%3C/svg%3E");
+  background-size: 100px 100px;
+}
+
+@keyframes audio-wave-1 {
+  0%, 100% { height: 8px; transform: scaleY(1); }
+  50% { height: 24px; transform: scaleY(1.2); }
+}
+
+@keyframes audio-wave-2 {
+  0%, 100% { height: 12px; transform: scaleY(1); }
+  50% { height: 28px; transform: scaleY(1.1); }
+}
+
+@keyframes audio-wave-3 {
+  0%, 100% { height: 6px; transform: scaleY(1); }
+  50% { height: 16px; transform: scaleY(1.3); }
+}
+
+@keyframes highlight-swipe {
+  0%, 20% { transform: scaleX(0); opacity: 0; }
+  30% { opacity: 1; }
+  80%, 100% { transform: scaleX(1); opacity: 1; }
+}
+
+@keyframes blob {
+  0%, 100% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
+  34% { border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%; }
+  67% { border-radius: 100% 60% 60% 100% / 100% 100% 60% 60%; }
+}
+
+@keyframes share-cursor-move {
+  0%, 15% { transform: translate(25px, 25px); }
+  25%, 55% { transform: translate(5px, 5px); }
+  65%, 100% { transform: translate(25px, 25px); }
+}
+
+@keyframes share-button-click {
+  0%, 25% { transform: scale(1); opacity: 1; }
+  30%, 35% { transform: scale(0.9); opacity: 0; }
+  45%, 100% { transform: scale(0.9); opacity: 0; }
+}
+
+@keyframes share-check-popup {
+  0%, 25% { transform: scale(0.5); opacity: 0; }
+  30%, 55% { transform: scale(1); opacity: 1; }
+  60%, 100% { transform: scale(0.5); opacity: 0; }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}

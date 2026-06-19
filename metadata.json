@@ -1,0 +1,8 @@
+{
+  "name": "LaPaginaDeLardi Mockup",
+  "description": "Mockup of the Landing Page for the academic platform LaPaginaDeLardi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
