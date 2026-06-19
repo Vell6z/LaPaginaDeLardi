@@ -21,7 +21,7 @@ export function Navbar() {
             Registrarse
           </Link>
         </div>
-        <button 
+        <button
           className="md:hidden text-acorn-600"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
         >
@@ -41,8 +41,8 @@ export function Navbar() {
             <Link to="/login" className="text-acorn-600 font-medium text-lg py-2 hover:bg-acorn-400/10 rounded-md transition-colors w-full text-left">
               Entrar a la madriguera
             </Link>
-            <Link 
-              to="/signup" 
+            <Link
+              to="/signup"
               className="bg-moss-500 hover:bg-moss-600 text-white text-center font-medium text-lg px-6 py-3 rounded-md shadow-sm transition-all"
               onClick={() => setIsMenuOpen(false)}
             >
