@@ -81,9 +81,17 @@ router.put('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
       return;
     }
 
+    const updateData: any = {};
+    if (req.body.title !== undefined) updateData.title = req.body.title;
+    if (req.body.description !== undefined) updateData.description = req.body.description;
+    if (req.body.date !== undefined) updateData.date = req.body.date;
+    if (req.body.time !== undefined) updateData.time = req.body.time;
+    if (req.body.type !== undefined) updateData.type = req.body.type;
+    if (req.body.isCompleted !== undefined) updateData.isCompleted = req.body.isCompleted;
+
     const reminder = await Reminder.findOneAndUpdate(
       { _id: id, userId: req.userId },
-      req.body,
+      { $set: updateData },
       { new: true }
     );
 

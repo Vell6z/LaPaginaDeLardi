@@ -8,6 +8,15 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+const escapeHtml = (unsafe: string) => {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
 export const sendVerificationEmail = async (to: string, code: string, name: string) => {
   const mailOptions = {
     from: `"LardIA" <${process.env.EMAIL_USER}>`,
@@ -16,7 +25,7 @@ export const sendVerificationEmail = async (to: string, code: string, name: stri
     html: `
       <div style="font-family: Arial, sans-serif; max-w-md; margin: 0 auto; padding: 40px; background-color: #F9F6F0; color: #112613; border-radius: 8px;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #4A6342; margin-bottom: 5px;">¡Hola, ${name}!</h1>
+          <h1 style="color: #4A6342; margin-bottom: 5px;">¡Hola, ${escapeHtml(name)}!</h1>
           <p style="font-size: 16px; color: #6D5B4D;">Bienvenido a La Página de Lardi</p>
         </div>
         
@@ -54,7 +63,7 @@ export const sendPasswordResetEmail = async (to: string, code: string, name: str
     html: `
       <div style="font-family: Arial, sans-serif; max-w-md; margin: 0 auto; padding: 40px; background-color: #F9F6F0; color: #112613; border-radius: 8px;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #4A6342; margin-bottom: 5px;">¡Hola, ${name}!</h1>
+          <h1 style="color: #4A6342; margin-bottom: 5px;">¡Hola, ${escapeHtml(name)}!</h1>
           <p style="font-size: 16px; color: #6D5B4D;">Recibimos una solicitud para restablecer tu contraseña.</p>
         </div>
         

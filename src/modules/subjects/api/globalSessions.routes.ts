@@ -13,8 +13,8 @@ const globalSessionsLimiter = rateLimit({
   message: { message: 'Demasiadas recargas en el dashboard. Intenta de nuevo más tarde.' }
 });
 
-router.use(protect);
 router.use(globalSessionsLimiter);
+router.use(protect);
 
 // Obtener todas las sesiones recientes del usuario (de cualquier materia)
 router.get('/recent', async (req: AuthRequest, res: Response): Promise<void> => {

@@ -19,8 +19,8 @@ const subjectsLimiter = rateLimit({
 });
 
 // Proteger todas las rutas de este router
-router.use(protect);
 router.use(subjectsLimiter);
+router.use(protect);
 
 // Montar rutas de sesiones (interior de la materia)
 router.use('/:subjectId/sessions', sessionsRoutes);

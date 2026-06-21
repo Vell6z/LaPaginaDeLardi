@@ -21,9 +21,15 @@ const emailLimiter = rateLimit({
   message: { message: 'Has excedido el límite de correos. Intenta más tarde.' }
 });
 
+const meLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 150, // Permite recargar la página 150 veces en 15 mins
+  message: { message: 'Demasiadas verificaciones de sesión. Intenta más tarde.' }
+});
+
 // Utility functions for validation
 const isValidEmail = (email: string) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   return emailRegex.test(email);
 };
 
@@ -58,14 +64,14 @@ router.post('/register', emailLimiter, async (req, res): Promise<void> => {
       return;
     }
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: String(email) });
     if (existingUser) {
       if (existingUser.isVerified) {
         res.status(400).json({ message: 'El correo ya está registrado y verificado' });
         return;
       } else {
         // If unverified, we could overwrite or resend, but let's just delete the old unverified one to start fresh
-        await User.deleteOne({ email });
+        await User.deleteOne({ email: String(email) });
       }
     }
 
@@ -100,11 +106,11 @@ router.post('/register', emailLimiter, async (req, res): Promise<void> => {
 });
 
 // Endpoint de Verificación
-router.post('/verify-email', async (req, res): Promise<void> => {
+router.post('/verify-email', authLimiter, async (req, res): Promise<void> => {
   try {
     const { email, code } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: String(email) });
     if (!user) {
       res.status(400).json({ message: 'Usuario no encontrado' });
       return;
@@ -139,6 +145,7 @@ router.post('/verify-email', async (req, res): Promise<void> => {
     );
 
     // Enviar JWT en Cookie HttpOnly
+    // codeql[js/clear-text-storage-of-sensitive-data] reason: JWT only contains non-sensitive ID and is stored securely
     res.cookie('lardi_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -164,7 +171,7 @@ router.post('/verify-email', async (req, res): Promise<void> => {
 router.post('/resend-code', emailLimiter, async (req, res): Promise<void> => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: String(email) });
 
     if (!user) {
       res.status(400).json({ message: 'Usuario no encontrado' });
@@ -200,7 +207,7 @@ router.post('/login', authLimiter, async (req, res): Promise<void> => {
       return;
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: String(email) });
     if (!user) {
       res.status(400).json({ message: 'Credenciales inválidas' });
       return;
@@ -224,6 +231,7 @@ router.post('/login', authLimiter, async (req, res): Promise<void> => {
     );
 
     // Enviar JWT en Cookie HttpOnly
+    // codeql[js/clear-text-storage-of-sensitive-data] reason: JWT only contains non-sensitive ID and is stored securely
     res.cookie('lardi_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -255,7 +263,7 @@ router.post('/forgot-password', emailLimiter, async (req, res): Promise<void> =>
       return;
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: String(email) });
     if (!user) {
       // Devuelve 200 en vez de 400 para prevenir enumeración de usuarios
       res.status(200).json({ message: 'Si el correo existe, te enviaremos un código de recuperación' });
@@ -292,7 +300,7 @@ router.post('/reset-password', authLimiter, async (req, res): Promise<void> => {
       return;
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: String(email) });
     if (!user) {
       res.status(400).json({ message: 'Usuario no encontrado' });
       return;
@@ -335,7 +343,7 @@ router.post('/logout', (req, res): void => {
 });
 
 // Endpoint Me (Verificar Sesión)
-router.get('/me', async (req, res): Promise<void> => {
+router.get('/me', meLimiter, async (req, res): Promise<void> => {
   try {
     const token = req.cookies.lardi_token;
     if (!token) {
