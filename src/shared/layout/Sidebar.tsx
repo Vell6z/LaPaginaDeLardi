@@ -1,13 +1,35 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   Squirrel, Home, Library, Calendar, 
-  ChevronLeft, ChevronRight, Brain
+  ChevronLeft, ChevronRight, Brain, LogOut, Loader2
 } from "lucide-react";
 import React, { useState } from "react";
 
 export function Sidebar() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    
+    try {
+      await fetch('http://localhost:5000/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (e) {
+      console.error("Error logging out", e);
+    }
+
+    localStorage.removeItem('lardi_user');
+    
+    // Pequeño retraso para la animación de cierre de sesión
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    navigate('/login');
+  };
 
   return (
     <aside className={`flex-shrink-0 h-full bg-[#112613] text-[#F9F6F0] flex flex-col justify-between py-8 transition-all duration-300 z-20 relative ${isSidebarOpen ? 'w-64 px-6' : 'w-20 px-4'}`}>
@@ -35,23 +57,35 @@ export function Sidebar() {
         </nav>
       </div>
 
-      {/* User Profile */}
-      <Link 
-        to="/ajustes" 
-        className={`flex items-center gap-3 ${isSidebarOpen ? 'justify-start px-2' : 'justify-center'} border-t border-[#F9F6F0]/10 pt-6 transition-all hover:opacity-80`}
-      >
-        <div className="relative shrink-0">
-          <div className="w-10 h-10 rounded-full bg-moss-700 flex items-center justify-center border-2 border-[#112613]">
-            <span className="font-bold text-sm">JP</span>
+      <div className="mt-auto border-t border-[#F9F6F0]/10 pt-6">
+        {/* User Profile */}
+        <Link 
+          to="/ajustes" 
+          className={`flex items-center gap-3 ${isSidebarOpen ? 'justify-start px-2' : 'justify-center'} transition-all hover:opacity-80 mb-4`}
+        >
+          <div className="relative shrink-0">
+            <div className="w-10 h-10 rounded-full bg-moss-700 flex items-center justify-center border-2 border-[#112613]">
+              <span className="font-bold text-sm">JP</span>
+            </div>
+            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-[#112613]"></div>
           </div>
-          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-[#112613]"></div>
-        </div>
-        {isSidebarOpen && (
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold truncate leading-tight">Juan Pérez</p>
-          </div>
-        )}
-      </Link>
+          {isSidebarOpen && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold truncate leading-tight">Juan Pérez</p>
+            </div>
+          )}
+        </Link>
+
+        {/* Logout Button */}
+        <button 
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className={`w-full flex items-center gap-3 px-3 py-3 rounded-md transition-all duration-200 font-medium ${isSidebarOpen ? 'justify-start' : 'justify-center'} ${isLoggingOut ? 'text-red-300 opacity-70 cursor-wait' : 'text-red-400 hover:bg-red-500/10 hover:text-red-300'}`}
+        >
+          {isLoggingOut ? <Loader2 className="w-5 h-5 shrink-0 animate-spin" /> : <LogOut className="w-5 h-5 shrink-0" />}
+          {isSidebarOpen && <span className="whitespace-nowrap">{isLoggingOut ? "Saliendo..." : "Cerrar Sesión"}</span>}
+        </button>
+      </div>
     </aside>
   );
 }

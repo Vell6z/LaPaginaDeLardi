@@ -1,5 +1,6 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { Sidebar } from "../../../shared/layout/Sidebar";
 import { ImmediateFocusSection } from "../components/ImmediateFocusSection";
 import { MySubjectsSection } from "../components/MySubjectsSection";
@@ -26,13 +27,35 @@ const recentClassesData = [
 ];
 
 export function DashboardPage() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Simular carga de datos
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="flex w-full h-screen overflow-hidden bg-[#F9F6F0] font-body text-[#112613]">
        <Sidebar />
 
        <main className="flex-1 h-full overflow-y-auto px-6 py-10 md:px-12 md:py-12 relative">
           
-          <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-12">
+          {/* Loading Overlay */}
+          {isLoading && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#F9F6F0]/60 backdrop-blur-sm">
+              <div className="flex flex-col items-center gap-4 bg-white p-6 rounded-lg shadow-lg border border-moss-500/20">
+                <Loader2 className="w-8 h-8 animate-spin text-moss-600" />
+                <span className="font-sans font-bold tracking-widest text-sm animate-pulse text-[#112613]">
+                  Sincronizando...
+                </span>
+              </div>
+            </div>
+          )}
+
+          <header className={`flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-12 transition-opacity duration-500 ${isLoading ? 'opacity-30' : 'opacity-100'}`}>
             <div>
               <h1 className="text-2xl md:text-3xl font-sans font-bold tracking-tight mb-2 text-[#112613]">
                 Hola, Juan. ¿Qué vamos a estructurar hoy?
@@ -45,11 +68,13 @@ export function DashboardPage() {
             </Link>
           </header>
 
-          <ImmediateFocusSection />
+          <div className={`transition-opacity duration-700 ${isLoading ? 'opacity-20' : 'opacity-100'}`}>
+            <ImmediateFocusSection />
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
-            <MySubjectsSection materias={materias} />
-            <RecentClassesSection recentClassesData={recentClassesData} />
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-12 mt-12">
+              <MySubjectsSection materias={materias} />
+              <RecentClassesSection recentClassesData={recentClassesData} />
+            </div>
           </div>
 
           <div className="h-24"></div>
