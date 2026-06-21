@@ -7,8 +7,14 @@ export function CalendarGrid({
   activeFilters,
   getSubject,
   handleMouseEnterEvent,
-  handleMouseLeaveEvent
+  handleMouseLeaveEvent,
+  currentYear,
+  currentMonth
 }: any) {
+  const now = new Date();
+  const realToday = now.getDate();
+  const isViewingCurrentMonth = currentYear === now.getFullYear() && currentMonth === now.getMonth();
+
   return (
     <div className="flex-1 bg-white border border-acorn-400/20 rounded-xl shadow-sm flex flex-col overflow-hidden min-h-[600px] mb-8">
       <div className="grid grid-cols-7 border-b border-acorn-400/20 bg-[#F9F6F0]/50">
@@ -21,8 +27,7 @@ export function CalendarGrid({
 
       <div className="flex-1 grid grid-cols-7 auto-rows-fr">
         {calendarGrid.map((dayObj: any, index: number) => {
-          const today = 15;
-          const isToday = dayObj.date === today;
+          const isToday = isViewingCurrentMonth && dayObj.date === realToday;
           const dayEvents = dayObj.date ? events[dayObj.date] || [] : [];
           const filteredEvents = dayEvents.filter((e: any) => activeFilters.includes(e.subjectId));
           const isFreeDay = dayObj.date && filteredEvents.length === 0;

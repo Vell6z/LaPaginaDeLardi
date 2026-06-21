@@ -14,6 +14,7 @@ import { SubjectDetailPage } from "../modules/subjects/pages/SubjectDetailPage";
 import { ClassDetailPage } from "../modules/subjects/pages/ClassDetailPage";
 import { SettingsPage } from "../modules/settings/SettingsPage";
 import { ProtectedRoute } from "../modules/auth/components/ProtectedRoute";
+import { MobileRecordPage } from "../modules/subjects/pages/MobileRecordPage";
 import { LoadingScreen } from "../shared/ui/LoadingScreen";
 import { AnimatePresence } from "motion/react";
 
@@ -41,6 +42,7 @@ export default function App() {
             <Route path="/materias" element={<SubjectsPage />} />
             <Route path="/materias/:id" element={<SubjectDetailPage />} />
             <Route path="/materias/:id/clase/:claseId" element={<ClassDetailPage />} />
+            <Route path="/mobile-record/:id/:claseId" element={<MobileRecordPage />} />
             <Route path="/calendario" element={<CalendarPage />} />
             <Route path="/repaso" element={<ActiveRecallPage />} />
             <Route path="/ajustes" element={<SettingsPage />} />

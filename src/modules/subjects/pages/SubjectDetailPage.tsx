@@ -2,40 +2,71 @@ import React, { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Sidebar } from "../../../shared/layout/Sidebar";
 import { ChevronLeft, Search, Filter, FileText, Plus } from "lucide-react";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { SessionCard } from "../components/SessionCard";
 import { SessionModal } from "../components/SessionModal";
+import { AlertTriangle } from "lucide-react";
 
-const subjectData = {
-  id: '3',
-  name: "Estructura de Datos",
-  color: "bg-purple-500",
-  textColor: "text-purple-500",
-  lightBg: "bg-purple-50",
-  professor: "Ing. Carlos Mendoza",
-  stats: {
-    totalHours: "24h 30m",
-    progress: "85%"
-  }
-};
-
-const initialSessions = [
-  { id: 1, title: "Clase 04: Árboles Binarios", date: "2026-03-10", time: "10:00 AM", status: "IA Procesado", type: "Clase", duration: "1h 20m", isHighlighted: false },
-  { id: 2, title: "Clase 05: Árboles AVL", date: "2026-03-12", time: "10:00 AM", status: "Transcrito", type: "Clase", duration: "1h 15m", isHighlighted: false },
-  { id: 3, title: "Taller: Implementación de Árboles", date: "2026-03-15", time: "02:00 PM", status: "Pendiente de Repaso", type: "Taller", duration: "2h 00m", isHighlighted: true },
-  { id: 4, title: "Clase 06: Grafos y Búsquedas", date: "2026-03-17", time: "10:00 AM", status: "Transcrito", type: "Clase", duration: "1h 30m", isHighlighted: false },
-  { id: 5, title: "Parcial 1 - Estructuras No Lineales", date: "2026-03-20", time: "08:00 AM", status: "Pendiente de Repaso", type: "Parcial", duration: "2h 00m", isHighlighted: false },
-];
+import { Loader2 } from "lucide-react";
 
 export function SubjectDetailPage() {
   const { id } = useParams();
-  const [sessions, setSessions] = useState(initialSessions);
+  const [subjectData, setSubjectData] = useState<any>(null);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("Mostrar todo");
-  const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
-  const [editingSessionId, setEditingSessionId] = useState<number | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [subjectRes, sessionsRes] = await Promise.all([
+          fetch(`http://localhost:5000/api/subjects/${id}`, { credentials: 'include' }),
+          fetch(`http://localhost:5000/api/subjects/${id}/sessions`, { credentials: 'include' })
+        ]);
+
+        if (subjectRes.ok && sessionsRes.ok) {
+          const subject = await subjectRes.json();
+          const sessionData = await sessionsRes.json();
+          
+          setSubjectData({
+            id: subject._id,
+            name: subject.name,
+            color: "bg-[#112613]",
+            textColor: "text-[#112613]",
+            lightBg: "bg-[#112613]/5",
+            professor: subject.professor || 'Profesor no asignado',
+            stats: {
+              totalHours: "0h 00m",
+              progress: "0%"
+            }
+          });
+          const mapped = sessionData.map((s: any) => ({ ...s, id: s._id, date: s.date.split('T')[0] }));
+          setSessions(mapped);
+
+          // Filtrar eventos próximos (fecha >= hoy)
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const upcoming = mapped
+            .filter((s: any) => new Date(s.date) >= today)
+            .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+            .slice(0, 5);
+          setUpcomingEvents(upcoming);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    if (id) fetchData();
+  }, [id]);
   const [newSessionTitle, setNewSessionTitle] = useState("");
   const [newSessionType, setNewSessionType] = useState("Clase");
 
@@ -54,31 +85,45 @@ export function SubjectDetailPage() {
     setNewSessionType("Clase");
   };
 
-  const handleSubmitClass = (e: React.FormEvent) => {
+  const handleSubmitClass = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSessionTitle.trim()) return;
 
-    if (editingSessionId) {
-      setSessions(sessions.map(s => 
-        s.id === editingSessionId 
-          ? { ...s, title: newSessionTitle, type: newSessionType } 
-          : s
-      ));
-    } else {
-      const newSession = {
-        id: Date.now(),
-        title: newSessionTitle,
-        date: new Date().toISOString().split('T')[0],
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        status: "Pendiente de Repaso",
-        type: newSessionType,
-        duration: "0h 00m",
-        isHighlighted: false
-      };
-      setSessions([newSession, ...sessions]);
+    try {
+      if (editingSessionId) {
+        const res = await fetch(`http://localhost:5000/api/subjects/${id}/sessions/${editingSessionId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ title: newSessionTitle, type: newSessionType })
+        });
+        if (res.ok) {
+          const updated = await res.json();
+          setSessions(sessions.map(s => s.id === editingSessionId ? { ...s, title: updated.title, type: updated.type } : s));
+        }
+      } else {
+        const payload = {
+          title: newSessionTitle,
+          date: new Date().toISOString().split('T')[0],
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          type: newSessionType
+        };
+        const res = await fetch(`http://localhost:5000/api/subjects/${id}/sessions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const created = await res.json();
+          setSessions([{ ...created, id: created._id, date: created.date.split('T')[0] }, ...sessions]);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      closeAndResetModal();
     }
-    
-    closeAndResetModal();
   };
 
   const filteredSessions = sessions.filter(s => {
@@ -91,16 +136,47 @@ export function SubjectDetailPage() {
     return matchesSearch && matchesFilter;
   });
 
-  const toggleHighlight = (e: React.MouseEvent, sessionId: number) => {
+  const toggleHighlight = async (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
+    
     setSessions(sessions.map(s => s.id === sessionId ? { ...s, isHighlighted: !s.isHighlighted } : s));
     setActiveMenuId(null);
+    
+    try {
+      await fetch(`http://localhost:5000/api/subjects/${id}/sessions/${sessionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ isHighlighted: !session.isHighlighted })
+      });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const deleteSession = (e: React.MouseEvent, sessionId: number) => {
+  const deleteSession = async (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
-    setSessions(sessions.filter(s => s.id !== sessionId));
     setActiveMenuId(null);
+    setDeleteConfirmId(sessionId);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/subjects/${id}/sessions/${deleteConfirmId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        setSessions(sessions.filter(s => s.id !== deleteConfirmId));
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setDeleteConfirmId(null);
+    }
   };
 
   const shareSession = (e: React.MouseEvent) => {
@@ -108,6 +184,17 @@ export function SubjectDetailPage() {
     alert("Enlace de sesión copiado al portapapeles.");
     setActiveMenuId(null);
   };
+
+  if (isLoading || !subjectData) {
+    return (
+      <div className="flex w-full h-screen overflow-hidden bg-[#F9F6F0] font-body text-[#112613] relative items-center justify-center">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-moss-600" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex w-full h-screen overflow-hidden bg-[#F9F6F0] font-body text-[#112613] relative selection:bg-moss-200">
@@ -182,6 +269,56 @@ export function SubjectDetailPage() {
               </div>
             </div>
 
+            {/* Próximos Eventos */}
+            <div className="mb-10">
+              <h3 className="text-xs font-mono tracking-widest uppercase font-bold text-acorn-500 mb-4 flex items-center gap-2">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Próximos
+              </h3>
+              {upcomingEvents.length > 0 ? (
+                <div className="flex flex-col gap-0 relative">
+                  {/* Vertical timeline line */}
+                  <div className="absolute left-[7px] top-2 bottom-2 w-px bg-acorn-200"></div>
+                  
+                  {upcomingEvents.map((ev, i) => {
+                    const evDate = new Date(ev.date + 'T00:00:00');
+                    const today = new Date();
+                    today.setHours(0,0,0,0);
+                    const diffDays = Math.ceil((evDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                    
+                    let dateLabel = '';
+                    if (diffDays === 0) dateLabel = 'Hoy';
+                    else if (diffDays === 1) dateLabel = 'Mañana';
+                    else if (diffDays <= 7) dateLabel = `En ${diffDays} días`;
+                    else dateLabel = evDate.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+
+                    const typeBadge = ev.type === 'Parcial' 
+                      ? 'bg-red-50 text-red-600' 
+                      : ev.type === 'Taller' 
+                        ? 'bg-amber-50 text-amber-700' 
+                        : 'bg-moss-50 text-moss-700';
+
+                    return (
+                      <div key={ev.id} className="flex items-start gap-3 py-2 pl-0 group">
+                        <div className={`w-[15px] h-[15px] rounded-full border-2 shrink-0 relative z-10 transition-colors ${
+                          diffDays === 0 ? 'bg-moss-500 border-moss-500' : 'bg-white border-acorn-300 group-hover:border-moss-500'
+                        }`}></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-[#112613] truncate leading-tight">{ev.title}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] font-mono font-bold text-acorn-500">{dateLabel}</span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${typeBadge}`}>{ev.type}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-acorn-400 font-medium italic">Sin eventos próximos</p>
+              )}
+            </div>
+
             <div className="mt-auto flex flex-col gap-4">
               <div className="bg-white border border-acorn-400/20 p-4 rounded-xl shadow-sm">
                 <span className="block text-[10px] font-mono tracking-widest uppercase text-acorn-500 font-bold mb-1">Total Horas</span>
@@ -235,6 +372,44 @@ export function SubjectDetailPage() {
           newSessionType={newSessionType}
           setNewSessionType={setNewSessionType}
         />
+
+        {deleteConfirmId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-[#112613]/40 backdrop-blur-sm"
+              onClick={() => setDeleteConfirmId(null)}
+            ></motion.div>
+            
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative z-10 border border-red-500/20"
+            >
+              <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mb-4 mx-auto">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-bold text-center text-[#112613] mb-2 font-sans tracking-tight">¿Borrar esta sesión?</h3>
+              <p className="text-acorn-500 text-sm text-center mb-6">Esta acción es permanente y no podrá deshacerse. Todo el contenido y apuntes se perderán.</p>
+              
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="flex-1 py-3 px-4 rounded-xl font-bold text-[#112613] bg-acorn-50 hover:bg-acorn-100 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={confirmDelete}
+                  className="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-sm"
+                >
+                  Sí, borrar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
     </div>
   );

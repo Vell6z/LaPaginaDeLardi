@@ -7,34 +7,55 @@ import { MySubjectsSection } from "../components/MySubjectsSection";
 import { RecentClassesSection } from "../components/RecentClassesSection";
 import { LardiTooltip } from "../components/LardiTooltip";
 
-const materias = [
-  { id: 1, name: "Cálculo Integral", count: 12 },
-  { id: 2, name: "Física Mecánica", count: 8 },
-  { id: 3, name: "Álgebra Lineal", count: 15 },
-  { id: 4, name: "Programación II", count: 24 },
-];
-
-const recentClassesData = [
-  { title: "Sustitución Trigonométrica", date: "Hoy, 10:30 AM" },
-  { title: "Leyes de Newton (Repaso)", date: "Ayer, 16:45 PM" },
-  { title: "Matrices Equivalentes", date: "Lun, 14:20 PM" },
-  { title: "Herencia y Polimorfismo", date: "Lun, 09:15 AM" },
-  { title: "Vectores en R3", date: "Vie, 11:00 AM" },
-  { title: "Árboles AVL", date: "Jue, 08:00 AM" },
-  { title: "Integrales Dobles", date: "Mié, 10:00 AM" },
-  { title: "Cinemática", date: "Mié, 08:00 AM" },
-  { title: "Bases de Datos", date: "Mar, 14:00 PM" },
-];
+// Mocks temporales para la sección de Enfoque Inmediato
 
 export function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
+  const [materias, setMaterias] = useState<any[]>([]);
+
+  const [recentClasses, setRecentClasses] = useState<any[]>([]);
 
   useEffect(() => {
-    // Simular carga de datos
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1500);
-    return () => clearTimeout(timer);
+    const fetchDashboardData = async () => {
+      try {
+        const [subjectsRes, sessionsRes] = await Promise.all([
+          fetch('http://localhost:5000/api/subjects', { credentials: 'include' }),
+          fetch('http://localhost:5000/api/sessions/recent', { credentials: 'include' })
+        ]);
+
+        if (subjectsRes.ok) {
+          const data = await subjectsRes.json();
+          // Mostrar solo hasta 4 materias activas en el dashboard, priorizando favoritas
+          const activeSubjects = data.filter((s: any) => !s.isArchived);
+          activeSubjects.sort((a: any, b: any) => (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0));
+          
+          const dashboardMaterias = activeSubjects.slice(0, 4).map((s: any) => ({
+            id: s._id,
+            name: s.name,
+            count: s.sessionsCount || 0
+          }));
+          setMaterias(dashboardMaterias);
+        }
+
+        if (sessionsRes.ok) {
+          const sessionsData = await sessionsRes.json();
+          const formattedSessions = sessionsData.map((s: any) => ({
+            id: s._id,
+            subjectId: s.subjectId,
+            title: s.title,
+            isHighlighted: s.isHighlighted,
+            date: new Date(s.date).toLocaleDateString() + ' • ' + s.time
+          }));
+          setRecentClasses(formattedSessions);
+        }
+      } catch (error) {
+        console.error("Error fetching dashboard data", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
   }, []);
 
   return (
@@ -73,7 +94,7 @@ export function DashboardPage() {
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-12 mt-12">
               <MySubjectsSection materias={materias} />
-              <RecentClassesSection recentClassesData={recentClassesData} />
+              <RecentClassesSection recentClassesData={recentClasses} />
             </div>
           </div>
 

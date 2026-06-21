@@ -1,6 +1,6 @@
 import { 
   Search, Plus, Pi, Network, Binary, BookOpen, PenTool, Database,
-  Calculator, FlaskConical, Globe, Cpu
+  Calculator, FlaskConical, Globe, Cpu, Layers, LayoutGrid, AlertTriangle
 } from "lucide-react";
 import { Sidebar } from "../../../shared/layout/Sidebar";
 import React, { useState, useEffect } from "react";
@@ -37,11 +37,15 @@ const initialMaterias = [
 ];
 
 export function SubjectsPage() {
-  const [materias, setMaterias] = useState(initialMaterias);
+  const [materias, setMaterias] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingSubjectId, setEditingSubjectId] = useState<number | null>(null);
+  const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'current'|'favorites'|'archived'>('current');
+  const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
 
   useEffect(() => {
@@ -53,13 +57,35 @@ export function SubjectsPage() {
   }, [location]);
 
   useEffect(() => {
-    const handleClickOutside = () => {
-      setActiveMenuId(null);
-    };
+    const handleClickOutside = () => setActiveMenuId(null);
     document.addEventListener("click", handleClickOutside);
-    return () => {
-      document.removeEventListener("click", handleClickOutside);
-    };
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
+
+  const fetchMaterias = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/subjects', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        // Mapear _id a id para el frontend y colorId a color
+        const mappedData = data.map((m: any) => ({
+          ...m,
+          id: m._id,
+          color: m.colorId,
+          notesCount: 0,
+          expectedNotes: 0
+        }));
+        setMaterias(mappedData);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMaterias();
   }, []);
 
   const [newSubject, setNewSubject] = useState({
@@ -70,19 +96,59 @@ export function SubjectsPage() {
     iconId: availableIcons[0].id
   });
 
-  const toggleFavorite = (id: number) => {
-    setMaterias(prev => prev.map(m => m.id === id ? { ...m, isFavorite: !(m as any).isFavorite } : m));
+  const toggleFavorite = async (id: string) => {
+    const materia = materias.find(m => m.id === id);
+    if (!materia) return;
+    const newStatus = !materia.isFavorite;
+    setMaterias(prev => prev.map(m => m.id === id ? { ...m, isFavorite: newStatus } : m));
     setActiveMenuId(null);
+    try {
+      await fetch(`http://localhost:5000/api/subjects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ isFavorite: newStatus })
+      });
+    } catch (e) { console.error(e); }
   };
 
-  const toggleArchive = (id: number) => {
-    setMaterias(prev => prev.map(m => m.id === id ? { ...m, isArchived: !(m as any).isArchived } : m));
+  const toggleArchive = async (id: string) => {
+    const materia = materias.find(m => m.id === id);
+    if (!materia) return;
+    const newStatus = !materia.isArchived;
+    setMaterias(prev => prev.map(m => m.id === id ? { ...m, isArchived: newStatus } : m));
     setActiveMenuId(null);
+    try {
+      await fetch(`http://localhost:5000/api/subjects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ isArchived: newStatus })
+      });
+    } catch (e) { console.error(e); }
   };
 
-  const deleteSubject = (id: number) => {
-    setMaterias(prev => prev.filter(m => m.id !== id));
+  const deleteSubject = async (id: string) => {
     setActiveMenuId(null);
+    setDeleteConfirmId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    const previousMaterias = [...materias];
+    setMaterias(prev => prev.filter(m => m.id !== deleteConfirmId));
+    try {
+      const res = await fetch(`http://localhost:5000/api/subjects/${deleteConfirmId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Error deleting subject');
+    } catch (e) {
+      console.error(e);
+      setMaterias(previousMaterias); // rollback on error
+    } finally {
+      setDeleteConfirmId(null);
+    }
   };
 
   const openEditModal = (materia: any) => {
@@ -110,30 +176,68 @@ export function SubjectsPage() {
     });
   };
 
-  const handleSubmitSubject = (e: React.FormEvent) => {
+  const handleSubmitSubject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSubject.name) return;
 
     setIsSubmitting(true);
-    setTimeout(() => {
+    
+    const payload = {
+      name: newSubject.name,
+      professor: newSubject.professor,
+      semester: newSubject.semester,
+      colorId: newSubject.color,
+      iconId: newSubject.iconId
+    };
+
+    try {
       if (editingSubjectId) {
-        setMaterias(prev => prev.map(m => 
-          m.id === editingSubjectId ? { ...m, ...newSubject } : m
-        ));
+        const res = await fetch(`http://localhost:5000/api/subjects/${editingSubjectId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const updated = await res.json();
+          setMaterias(prev => prev.map(m => m.id === editingSubjectId ? { ...m, ...payload, color: payload.colorId } : m));
+        }
       } else {
-        setMaterias(prev => [...prev, {
-          id: Date.now(),
-          ...newSubject,
-          notesCount: 0,
-          expectedNotes: 0,
-          isFavorite: false,
-          isArchived: false
-        } as any]);
+        const res = await fetch(`http://localhost:5000/api/subjects`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const created = await res.json();
+          setMaterias(prev => [{
+            ...created,
+            id: created._id,
+            color: created.colorId,
+            notesCount: 0,
+            expectedNotes: 0
+          }, ...prev]);
+        }
       }
+    } catch (e) {
+      console.error(e);
+    } finally {
       setIsSubmitting(false);
       closeAndResetModal();
-    }, 1000);
+    }
   };
+
+  const filteredMaterias = materias.filter(m => {
+    if (filter === 'current') return !m.isArchived;
+    if (filter === 'favorites') return m.isFavorite && !m.isArchived;
+    if (filter === 'archived') return m.isArchived;
+    return true;
+  }).filter(m => {
+    if (!searchQuery) return true;
+    const lowerSearch = searchQuery.toLowerCase();
+    return m.name.toLowerCase().includes(lowerSearch) || (m.professor && m.professor.toLowerCase().includes(lowerSearch));
+  });
 
   return (
     <div className="flex w-full h-screen overflow-hidden bg-[#F9F6F0] font-body text-[#112613] relative">
@@ -162,6 +266,8 @@ export function SubjectsPage() {
                 <input 
                   type="text" 
                   placeholder="Buscar por materia o profesor..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-white border border-acorn-400/20 rounded-lg pl-12 pr-4 py-3.5 text-[#112613] font-body outline-none focus:border-moss-500 focus:ring-2 focus:ring-moss-500/20 transition-all shadow-sm"
                 />
               </div>
@@ -178,33 +284,60 @@ export function SubjectsPage() {
 
           {/* Filters */}
           <div className="flex items-center gap-3 mb-8 overflow-x-auto pb-2 scrollbar-hide">
-            <button className="px-4 py-1.5 rounded-full bg-[#112613] text-[#F9F6F0] font-medium text-sm whitespace-nowrap">
+            <button 
+              onClick={() => setFilter('current')}
+              className={`px-4 py-1.5 rounded-full font-medium text-sm whitespace-nowrap transition-colors ${
+                filter === 'current' ? 'bg-[#112613] text-[#F9F6F0]' : 'bg-white border border-acorn-400/20 text-[#112613] hover:bg-acorn-50'
+              }`}
+            >
               Semestre Actual
             </button>
-            <button className="px-4 py-1.5 rounded-full bg-white border border-acorn-400/20 text-[#112613] hover:bg-acorn-50 font-medium text-sm whitespace-nowrap transition-colors">
+            <button 
+              onClick={() => setFilter('favorites')}
+              className={`px-4 py-1.5 rounded-full font-medium text-sm whitespace-nowrap transition-colors ${
+                filter === 'favorites' ? 'bg-[#112613] text-[#F9F6F0]' : 'bg-white border border-acorn-400/20 text-[#112613] hover:bg-acorn-50'
+              }`}
+            >
               Mis Favoritas
             </button>
-            <button className="px-4 py-1.5 rounded-full bg-white border border-acorn-400/20 text-[#112613] hover:bg-acorn-50 font-medium text-sm whitespace-nowrap transition-colors">
+            <button 
+              onClick={() => setFilter('archived')}
+              className={`px-4 py-1.5 rounded-full font-medium text-sm whitespace-nowrap transition-colors ${
+                filter === 'archived' ? 'bg-[#112613] text-[#F9F6F0]' : 'bg-white border border-acorn-400/20 text-[#112613] hover:bg-acorn-50'
+              }`}
+            >
               Archivadas
             </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <AnimatePresence>
-            {materias.map((materia) => (
-              <SubjectCard 
-                key={materia.id}
-                materia={materia}
-                activeMenuId={activeMenuId}
-                setActiveMenuId={setActiveMenuId}
-                openEditModal={openEditModal}
-                toggleFavorite={toggleFavorite}
-                toggleArchive={toggleArchive}
-                deleteSubject={deleteSubject}
-                availableIcons={availableIcons}
-              />
-            ))}
-            </AnimatePresence>
+            {isLoading ? (
+              <div className="col-span-full flex justify-center py-20">
+                <div className="w-8 h-8 border-4 border-moss-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : (
+              <AnimatePresence>
+              {filteredMaterias.length > 0 ? (
+                filteredMaterias.map((materia) => (
+                  <SubjectCard 
+                    key={materia.id}
+                    materia={materia}
+                    activeMenuId={activeMenuId}
+                    setActiveMenuId={setActiveMenuId}
+                    openEditModal={openEditModal}
+                    toggleFavorite={toggleFavorite}
+                    toggleArchive={toggleArchive}
+                    deleteSubject={deleteSubject}
+                    availableIcons={availableIcons}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full py-12 text-center">
+                  <p className="text-[#112613]/50 font-medium">No se encontraron materias que coincidan con la búsqueda.</p>
+                </div>
+              )}
+              </AnimatePresence>
+            )}
           </div>
 
           <div className="h-24"></div>
@@ -223,6 +356,44 @@ export function SubjectsPage() {
               availableColors={availableColors}
               availableIcons={availableIcons}
             />
+          )}
+          
+          {deleteConfirmId && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-[#112613]/40 backdrop-blur-sm"
+                onClick={() => setDeleteConfirmId(null)}
+              ></motion.div>
+              
+              <motion.div 
+                initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 10 }}
+                className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative z-10 border border-red-500/20"
+              >
+                <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mb-4 mx-auto">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-bold text-center text-[#112613] mb-2 font-sans tracking-tight">¿Borrar esta materia?</h3>
+                <p className="text-acorn-500 text-sm text-center mb-6">Se borrarán todas las clases, apuntes y flashcards asociados. Esta acción no se puede deshacer.</p>
+                
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => setDeleteConfirmId(null)}
+                    className="flex-1 py-3 px-4 rounded-xl font-bold text-[#112613] bg-acorn-50 hover:bg-acorn-100 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={confirmDelete}
+                    className="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-sm"
+                  >
+                    Sí, borrar
+                  </button>
+                </div>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>
 

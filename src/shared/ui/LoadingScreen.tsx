@@ -9,7 +9,7 @@ const messages = [
     "Casi listo para aprender."
 ];
 
-export function LoadingScreen({ onComplete, key }: { onComplete: () => void, key?: string }) {
+export function LoadingScreen({ onComplete }: { onComplete: () => void }) {
     const [messageIndex, setMessageIndex] = useState(0);
 
     useEffect(() => {
