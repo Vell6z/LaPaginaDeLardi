@@ -1,11 +1,11 @@
 import { 
   Search, Plus, Pi, Network, Binary, BookOpen, PenTool, Database,
-  Calculator, FlaskConical, Globe, Cpu, Layers, LayoutGrid, AlertTriangle
+  Calculator, FlaskConical, Globe, Cpu, Layers, LayoutGrid, AlertTriangle, ChevronRight, Activity, Clock, MoreVertical, Archive, Star, Trash2, Edit2
 } from "lucide-react";
 import { Sidebar } from "../../../shared/layout/Sidebar";
 import React, { useState, useEffect } from "react";
-import { AnimatePresence } from "motion/react";
-import { useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "motion/react";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import { SubjectCard } from "../components/SubjectCard";
 import { SubjectModal } from "../components/SubjectModal";
 

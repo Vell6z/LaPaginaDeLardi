@@ -135,8 +135,8 @@ export function ClassDetailPage() {
     setIsUploading(true);
     try {
       const formData = new FormData();
-      Array.from(e.target.files).forEach(file => {
-        formData.append('documents', file);
+      Array.from(e.target.files).forEach((file) => {
+        formData.append('documents', file as File);
       });
 
       const res = await fetch(`http://${window.location.hostname}:5000/api/subjects/${id}/sessions/${claseId}/media/documents`, {

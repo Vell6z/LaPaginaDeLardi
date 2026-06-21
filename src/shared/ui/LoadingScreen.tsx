@@ -9,7 +9,12 @@ const messages = [
     "Casi listo para aprender."
 ];
 
-export function LoadingScreen({ onComplete }: { onComplete: () => void }) {
+interface LoadingScreenProps {
+    onComplete: () => void;
+    key?: string;
+}
+
+export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
     const [messageIndex, setMessageIndex] = useState(0);
 
     useEffect(() => {

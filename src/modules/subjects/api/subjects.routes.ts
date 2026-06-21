@@ -25,7 +25,7 @@ router.use(subjectsLimiter);
 // Montar rutas de sesiones (interior de la materia)
 router.use('/:subjectId/sessions', sessionsRoutes);
 
-import { Session } from '../../../core/database/models/Session.js';
+
 
 // Obtener todas las materias del usuario
 router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
