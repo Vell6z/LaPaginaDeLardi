@@ -1,6 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X } from "lucide-react";
+import { X, Sparkles } from "lucide-react";
 
 export function SessionModal({
   isClassModalOpen,
@@ -52,6 +52,14 @@ export function SessionModal({
               className="w-full bg-white border border-acorn-400/20 rounded-xl px-4 py-3 text-[#112613] outline-none focus:border-moss-500 transition-colors placeholder-acorn-400 font-medium"
               required
             />
+            {!editingSessionId && (
+              <div className="flex items-start gap-2 mt-1 px-1">
+                <Sparkles className="w-4 h-4 text-moss-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-acorn-500 leading-tight">
+                  <strong className="text-moss-700">Recomendación:</strong> Usa un título descriptivo. Esto ayudará a <strong className="text-moss-700">LardIA</strong> a entender mejor el contexto y tener mayor precisión al analizar tus clases.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">

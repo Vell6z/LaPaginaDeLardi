@@ -9,6 +9,7 @@ import authRoutes from './modules/auth/api/auth.routes.js';
 import subjectsRoutes from './modules/subjects/api/subjects.routes.js';
 import globalSessionsRoutes from './modules/subjects/api/globalSessions.routes.js';
 import remindersRoutes from './modules/calendar/api/reminders.routes.js';
+import driveRoutes from './modules/auth/api/drive.routes.js';
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use('/uploads', express.static('public/uploads'));
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/drive', driveRoutes);
 app.use('/api/subjects', subjectsRoutes);
 app.use('/api/sessions', globalSessionsRoutes);
 app.use('/api/reminders', remindersRoutes);

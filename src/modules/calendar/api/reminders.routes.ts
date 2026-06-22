@@ -3,12 +3,14 @@ import { Reminder } from '../../../core/database/models/Reminder.js';
 import { protect, AuthRequest } from '../../../core/middlewares/auth.middleware.js';
 import mongoose from 'mongoose';
 import rateLimit from 'express-rate-limit';
+import { requireDrive } from '../../../core/middlewares/drive.middleware.js';
 
 const router = Router();
 
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
 router.use(limiter);
 router.use(protect);
+router.use(requireDrive);
 
 // GET: Recordatorios por mes
 router.get('/calendar', async (req: AuthRequest, res: Response): Promise<void> => {

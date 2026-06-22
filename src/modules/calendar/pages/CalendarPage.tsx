@@ -93,6 +93,11 @@ export function CalendarPage() {
           fetch(`http://localhost:5000/api/sessions/calendar?year=${year}&month=${month + 1}`, { credentials: 'include' })
         ]);
 
+        if (subRes.status === 403 || remRes.status === 403 || sessRes.status === 403) {
+          window.location.href = '/setup-drive';
+          return;
+        }
+
         if (subRes.ok) {
           const sData = await subRes.json();
           const mappedSubjects = sData.map((s: any) => ({

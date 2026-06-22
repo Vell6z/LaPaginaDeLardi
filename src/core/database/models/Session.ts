@@ -9,11 +9,16 @@ export interface ISession extends Document {
   type: string;
   status: string;
   isHighlighted: boolean;
+  driveFolderId?: string;
   media: {
-    pdfOrImagesUrls: string[];
-    audioUrl?: string;
+    materials: { name: string; url: string; fileId: string; mimeType: string }[];
+    audios: { name: string; url: string; fileId: string }[];
     videoUrl?: string;
     rawText?: string;
+    // Legacy fields
+    pdfOrImagesUrls?: string[];
+    audioUrl?: string;
+    driveFileIds?: { [fileName: string]: string };
   };
   aiContent: {
     transcript?: string;
@@ -32,11 +37,24 @@ const SessionSchema: Schema = new Schema({
   type: { type: String, default: 'Clase' },
   status: { type: String, default: 'Pendiente de Repaso' },
   isHighlighted: { type: Boolean, default: false },
+  driveFolderId: { type: String },
   media: {
+    materials: [{
+      name: { type: String },
+      url: { type: String },
+      fileId: { type: String },
+      mimeType: { type: String }
+    }],
+    audios: [{
+      name: { type: String },
+      url: { type: String },
+      fileId: { type: String }
+    }],
+    videoUrl: { type: String },
+    rawText: { type: String },
     pdfOrImagesUrls: [{ type: String }],
     audioUrl: { type: String },
-    videoUrl: { type: String },
-    rawText: { type: String }
+    driveFileIds: { type: Map, of: String }
   },
   aiContent: {
     transcript: { type: String },

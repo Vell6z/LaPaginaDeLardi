@@ -5,9 +5,10 @@ import { Subject } from '../../../core/database/models/Subject.js';
 import { Session } from '../../../core/database/models/Session.js';
 import { Reminder } from '../../../core/database/models/Reminder.js';
 import { protect, AuthRequest } from '../../../core/middlewares/auth.middleware.js';
+import { requireDrive } from '../../../core/middlewares/drive.middleware.js';
+import { GoogleDriveService } from '../../../core/services/googledrive.service.js';
+import { User } from '../../../core/database/models/User.js';
 import sessionsRoutes from './sessions.routes.js';
-import fs from 'fs';
-import path from 'path';
 
 const router = Router();
 
@@ -21,6 +22,7 @@ const subjectsLimiter = rateLimit({
 // Proteger todas las rutas de este router
 router.use(subjectsLimiter);
 router.use(protect);
+router.use(requireDrive);
 
 // Montar rutas de sesiones (interior de la materia)
 router.use('/:subjectId/sessions', sessionsRoutes);
@@ -85,13 +87,18 @@ router.post('/', async (req: AuthRequest, res: Response): Promise<void> => {
       return;
     }
 
+    const user = await User.findById(req.userId);
+    const authClient = await GoogleDriveService.getAuthClient(req.userId as string);
+    const driveFolderId = await GoogleDriveService.createFolder(authClient, name, user!.googleDriveInfo!.rootFolderId);
+
     const newSubject = new Subject({
       userId: req.userId,
       name,
       professor,
       semester,
       colorId,
-      iconId
+      iconId,
+      driveFolderId
     });
 
     await newSubject.save();
@@ -132,7 +139,13 @@ router.put('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
     }
 
     // Actualizar campos
-    if (updateData.name !== undefined) subject.name = updateData.name;
+    if (updateData.name !== undefined) {
+      if (updateData.name !== subject.name && subject.driveFolderId) {
+        const authClient = await GoogleDriveService.getAuthClient(req.userId as string);
+        await GoogleDriveService.renameFile(authClient, subject.driveFolderId, updateData.name);
+      }
+      subject.name = updateData.name;
+    }
     if (updateData.professor !== undefined) subject.professor = updateData.professor;
     if (updateData.semester !== undefined) subject.semester = updateData.semester;
     if (updateData.colorId !== undefined) subject.colorId = updateData.colorId;
@@ -165,26 +178,15 @@ router.delete('/:id', async (req: AuthRequest, res: Response): Promise<void> => 
       return;
     }
 
-    // Buscar todas las sesiones asociadas
-    const sessions = await Session.find({ subjectId: id });
-    const filesToDelete: string[] = [];
-
-    // Recopilar todos los archivos físicos de cada sesión
-    sessions.forEach(session => {
-      if (session.media?.audioUrl) filesToDelete.push(session.media.audioUrl);
-      if (session.media?.videoUrl) filesToDelete.push(session.media.videoUrl);
-      if (session.media?.pdfOrImagesUrls) filesToDelete.push(...session.media.pdfOrImagesUrls);
-    });
-
-    // Borrar archivos físicos
-    filesToDelete.forEach(fileUrl => {
+    // Borrar la carpeta en Drive
+    if (subject.driveFolderId) {
       try {
-        const filePath = path.join(process.cwd(), 'public', fileUrl);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        const authClient = await GoogleDriveService.getAuthClient(req.userId as string);
+        await GoogleDriveService.deleteFile(authClient, subject.driveFolderId);
       } catch (e) {
-        console.error('Error al borrar archivo físico de sesión:', e);
+        console.error('Error al borrar carpeta de materia en Drive:', e);
       }
-    });
+    }
 
     // Borrar dependencias en base de datos
     await Reminder.deleteMany({ subjectId: id });

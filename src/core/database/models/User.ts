@@ -15,6 +15,9 @@ export interface IUser extends Document {
   googleDriveInfo?: {
     accessToken?: string;
     refreshToken?: string;
+    rootFolderId?: string;
+    isLinked: boolean;
+    linkedAt?: Date;
   };
   isVerified: boolean;
   verificationCode?: string;
@@ -40,6 +43,9 @@ const UserSchema: Schema = new Schema({
   googleDriveInfo: {
     accessToken: { type: String },
     refreshToken: { type: String },
+    rootFolderId: { type: String },
+    isLinked: { type: Boolean, default: false },
+    linkedAt: { type: Date }
   },
   isVerified: { type: Boolean, default: false },
   verificationCode: { type: String },

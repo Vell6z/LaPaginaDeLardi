@@ -9,6 +9,7 @@ export interface ISubject extends Document {
   iconId: string;
   isFavorite: boolean;
   isArchived: boolean;
+  driveFolderId?: string;
   createdAt: Date;
 }
 
@@ -21,6 +22,7 @@ const SubjectSchema: Schema = new Schema({
   iconId: { type: String, default: 'math' },
   isFavorite: { type: Boolean, default: false },
   isArchived: { type: Boolean, default: false },
+  driveFolderId: { type: String },
   createdAt: { type: Date, default: Date.now }
 });
 

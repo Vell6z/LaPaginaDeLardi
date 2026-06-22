@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 
 export function ProtectedRoute() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isDriveLinked, setIsDriveLinked] = useState<boolean>(true);
 
   useEffect(() => {
     const verifyAuth = async () => {
@@ -17,6 +18,7 @@ export function ProtectedRoute() {
           // Update local storage just in case it's out of sync
           localStorage.setItem('lardi_user', JSON.stringify(data.user));
           setIsAuthenticated(true);
+          setIsDriveLinked(!!data.user.googleDriveInfo?.isLinked);
         } else {
           setIsAuthenticated(false);
           localStorage.removeItem('lardi_user');
@@ -42,6 +44,11 @@ export function ProtectedRoute() {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Force drive linking
+  if (!isDriveLinked && window.location.pathname !== '/setup-drive') {
+    return <Navigate to="/setup-drive" replace />;
   }
 
   return <Outlet />;

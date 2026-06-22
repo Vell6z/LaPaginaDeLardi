@@ -65,6 +65,10 @@ export function SubjectsPage() {
   const fetchMaterias = async () => {
     try {
       const res = await fetch('http://localhost:5000/api/subjects', { credentials: 'include' });
+      if (res.status === 403) {
+        window.location.href = '/setup-drive';
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         // Mapear _id a id para el frontend y colorId a color

@@ -16,31 +16,58 @@ export function SettingsPage() {
   
   const [driveStorage, setDriveStorage] = useState<{ usage: number; limit: number } | null>(null);
   const [isConnectingDrive, setIsConnectingDrive] = useState(false);
+  const [isDriveLinked, setIsDriveLinked] = useState(false);
+  
+  React.useEffect(() => {
+    // Fetch initial drive status
+    fetch('http://localhost:5000/api/drive/status', { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        setIsDriveLinked(data.isLinked);
+        if (data.isLinked && data.storage) {
+          setDriveStorage(data.storage);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   const handleGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
+    flow: 'auth-code',
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    onSuccess: async ({ code }) => {
       setIsConnectingDrive(true);
       try {
-        const response = await fetch('https://www.googleapis.com/drive/v3/about?fields=storageQuota', {
-          headers: {
-            Authorization: `Bearer ${tokenResponse.access_token}`,
-          },
+        const response = await fetch('http://localhost:5000/api/drive/link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ code })
         });
-        const data = await response.json();
-        if (data.storageQuota) {
-          setDriveStorage({
-            usage: parseInt(data.storageQuota.usage, 10),
-            limit: parseInt(data.storageQuota.limit, 10),
-          });
+        if (response.ok) {
+          setIsDriveLinked(true);
+          const statusRes = await fetch('http://localhost:5000/api/drive/status', { credentials: 'include' });
+          const data = await statusRes.json();
+          if (data.storage) setDriveStorage(data.storage);
         }
       } catch (error) {
-        console.error('Error fetching Drive storage:', error);
+        console.error('Error linking Drive:', error);
       } finally {
         setIsConnectingDrive(false);
       }
-    },
-    scope: 'https://www.googleapis.com/auth/drive.metadata.readonly',
+    }
   });
+
+  const handleUnlinkDrive = async () => {
+    try {
+      await fetch('http://localhost:5000/api/drive/unlink', { method: 'POST', credentials: 'include' });
+      setIsDriveLinked(false);
+      setDriveStorage(null);
+      // Redirigir al setup ya que ahora es obligatorio
+      window.location.href = '/setup-drive';
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -120,7 +147,7 @@ export function SettingsPage() {
                 <div className="flex justify-between items-end">
                   <span className="text-sm font-bold text-[#112613]">Uso de Almacenamiento</span>
                   <span className="text-sm font-medium text-acorn-500">
-                    {driveStorage ? `${formatBytes(driveStorage.usage)} / ${formatBytes(driveStorage.limit)}` : "4.2 GB / 10 GB (Local)"}
+                    {isDriveLinked && driveStorage ? `${formatBytes(driveStorage.usage)} / ${formatBytes(driveStorage.limit)}` : "No vinculado"}
                   </span>
                 </div>
                 <div className="h-3 w-full bg-acorn-100 rounded-full overflow-hidden">
@@ -132,14 +159,24 @@ export function SettingsPage() {
               </div>
 
               <div className="w-full mt-2">
-                <button 
-                  onClick={() => handleGoogleLogin()}
-                  disabled={isConnectingDrive}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-blue-100 hover:border-blue-200 text-blue-700 bg-blue-50 font-bold text-sm transition-colors disabled:opacity-50"
-                >
-                  <Cloud className="w-4 h-4" /> 
-                  {isConnectingDrive ? "Conectando..." : driveStorage ? "Actualizar Almacenamiento Drive" : "Conectar con Google Drive"}
-                </button>
+                {!isDriveLinked ? (
+                  <button 
+                    onClick={() => handleGoogleLogin()}
+                    disabled={isConnectingDrive}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-blue-100 hover:border-blue-200 text-blue-700 bg-blue-50 font-bold text-sm transition-colors disabled:opacity-50"
+                  >
+                    <Cloud className="w-4 h-4" /> 
+                    {isConnectingDrive ? "Conectando..." : "Conectar con Google Drive"}
+                  </button>
+                ) : (
+                  <button 
+                    onClick={handleUnlinkDrive}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-rose-100 hover:border-rose-200 text-rose-700 bg-rose-50 font-bold text-sm transition-colors"
+                  >
+                    <Cloud className="w-4 h-4" /> 
+                    Desvincular Google Drive
+                  </button>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 mt-auto pt-6">

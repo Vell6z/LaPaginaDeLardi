@@ -22,6 +22,10 @@ export function DashboardPage() {
           fetch('http://localhost:5000/api/subjects', { credentials: 'include' }),
           fetch('http://localhost:5000/api/sessions/recent', { credentials: 'include' })
         ]);
+        if (subjectsRes.status === 403 || sessionsRes.status === 403) {
+          window.location.href = '/setup-drive';
+          return;
+        }
 
         if (subjectsRes.ok) {
           const data = await subjectsRes.json();
