@@ -6,12 +6,15 @@ import { AnimatePresence, motion } from "motion/react";
 import { SessionCard } from "../components/SessionCard";
 import { SessionModal } from "../components/SessionModal";
 import { AlertTriangle } from "lucide-react";
-
 import { Loader2 } from "lucide-react";
+import { usePageTitle } from "../../../core/hooks/usePageTitle";
 
 export function SubjectDetailPage() {
   const { id } = useParams();
   const [subjectData, setSubjectData] = useState<any>(null);
+  
+  usePageTitle(subjectData ? subjectData.name : "Cargando materia...");
+  
   const [sessions, setSessions] = useState<any[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);

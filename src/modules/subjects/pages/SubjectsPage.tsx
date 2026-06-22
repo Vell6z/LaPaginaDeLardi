@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { SubjectCard } from "../components/SubjectCard";
 import { SubjectModal } from "../components/SubjectModal";
+import { usePageTitle } from "../../../core/hooks/usePageTitle";
 
 const availableIcons = [
   { id: 'math', icon: <Pi className="w-5 h-5 text-current" /> },
@@ -37,6 +38,7 @@ const initialMaterias = [
 ];
 
 export function SubjectsPage() {
+  usePageTitle("Mis Materias");
   const [materias, setMaterias] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);

@@ -6,6 +6,7 @@ import { EventModal } from "../components/EventModal";
 import { EventHoverPopover } from "../components/EventHoverPopover";
 import { CalendarGrid } from "../components/CalendarGrid";
 import { CalendarList } from "../components/CalendarList";
+import { usePageTitle } from "../../../core/hooks/usePageTitle";
 
 const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
 const getFirstDayOfMonth = (year: number, month: number) => {

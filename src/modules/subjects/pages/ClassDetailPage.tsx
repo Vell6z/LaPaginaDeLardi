@@ -6,12 +6,15 @@ import { QRCodeSVG } from 'qrcode.react';
 import { motion, AnimatePresence } from "motion/react";
 import { Save, Trash2, Edit2, X, Brain, Sparkles } from "lucide-react";
 import { LardiaTab } from "../components/LardiaTab";
+import { usePageTitle } from "../../../core/hooks/usePageTitle";
 
 export function ClassDetailPage() {
   const { id, claseId } = useParams();
   const navigate = useNavigate();
 
   const [session, setSession] = useState<any>(null);
+  usePageTitle(session ? session.title : "Cargando clase...");
+
   const [subject, setSubject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isExiting, setIsExiting] = useState(false);

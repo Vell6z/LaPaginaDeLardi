@@ -6,6 +6,7 @@ import { ImmediateFocusSection } from "../components/ImmediateFocusSection";
 import { MySubjectsSection } from "../components/MySubjectsSection";
 import { RecentClassesSection } from "../components/RecentClassesSection";
 import { LardiTooltip } from "../components/LardiTooltip";
+import { usePageTitle } from "../../../core/hooks/usePageTitle";
 
 // Mocks temporales para la sección de Enfoque Inmediato
 
